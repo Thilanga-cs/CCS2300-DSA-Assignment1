@@ -1,0 +1,309 @@
+import java.util.*;
+
+/**
+ * CCS2300 Assignment 1 - Module 1
+ * Smart City Route Planner (Graph + BST + BFS/DFS)
+ *
+ * Features:
+ * - Locations stored in a BST first
+ * - Mapped into a Graph (Adjacency List)
+ * - Add/remove locations
+ * - Add/remove roads (undirected)
+ * - Display connections
+ * - BFS (Queue) and DFS (Stack) traversal
+ */
+public class Main {
+
+    // ---------- Location Model ----------
+    static class Location {
+        private final String name;   // keep original
+        private final String key;    // normalized (for comparisons)
+
+        public Location(String name) {
+            this.name = name.trim();
+            this.key = normalize(name);
+        }
+
+        public String getName() { return name; }
+        public String getKey() { return key; }
+
+        @Override
+        public String toString() { return name; }
+    }
+
+    // ---------- BST for Locations ----------
+    static class LocationBST {
+        static class Node {
+            Location value;
+            Node left, right;
+            Node(Location value) { this.value = value; }
+        }
+
+        private Node root;
+
+        public boolean insert(Location loc) {
+            if (loc == null) return false;
+            if (root == null) {
+                root = new Node(loc);
+                return true;
+            }
+            Node cur = root;
+            while (true) {
+                int cmp = loc.getKey().compareTo(cur.value.getKey());
+                if (cmp == 0) return false; // duplicate
+                if (cmp < 0) {
+                    if (cur.left == null) { cur.left = new Node(loc); return true; }
+                    cur = cur.left;
+                } else {
+                    if (cur.right == null) { cur.right = new Node(loc); return true; }
+                    cur = cur.right;
+                }
+            }
+        }
+
+        public boolean contains(String name) {
+            return findNode(normalize(name)) != null;
+        }
+
+        public Location get(String name) {
+            Node n = findNode(normalize(name));
+            return n == null ? null : n.value;
+        }
+
+        private Node findNode(String key) {
+            Node cur = root;
+            while (cur != null) {
+                int cmp = key.compareTo(cur.value.getKey());
+                if (cmp == 0) return cur;
+                cur = (cmp < 0) ? cur.left : cur.right;
+            }
+            return null;
+        }
+
+        public boolean remove(String name) {
+            String key = normalize(name);
+            if (!contains(name)) return false;
+            root = removeRec(root, key);
+            return true;
+        }
+
+        private Node removeRec(Node node, String key) {
+            if (node == null) return null;
+
+            int cmp = key.compareTo(node.value.getKey());
+            if (cmp < 0) {
+                node.left = removeRec(node.left, key);
+            } else if (cmp > 0) {
+                node.right = removeRec(node.right, key);
+            } else {
+                // Node found
+                if (node.left == null) return node.right;
+                if (node.right == null) return node.left;
+
+                // Two children: replace with inorder successor
+                Node succ = minNode(node.right);
+                node.value = succ.value;
+                node.right = removeRec(node.right, succ.value.getKey());
+            }
+            return node;
+        }
+
+        private Node minNode(Node node) {
+            while (node.left != null) node = node.left;
+            return node;
+        }
+
+        public List<Location> inorder() {
+            List<Location> list = new ArrayList<>();
+            inorderRec(root, list);
+            return list;
+        }
+
+        private void inorderRec(Node node, List<Location> list) {
+            if (node == null) return;
+            inorderRec(node.left, list);
+            list.add(node.value);
+            inorderRec(node.right, list);
+        }
+
+        public boolean isEmpty() { return root == null; }
+    }
+
+    // ---------- Graph (Adjacency List) ----------
+    static class Graph {
+        // key -> (Location, neighborsKeys)
+        static class Vertex {
+            Location location;
+            Set<String> neighbors = new TreeSet<>();
+            Vertex(Location location) { this.location = location; }
+        }
+
+        private final Map<String, Vertex> adj = new TreeMap<>(); // sorted keys
+
+        public boolean addLocation(Location loc) {
+            if (loc == null) return false;
+            String k = loc.getKey();
+            if (adj.containsKey(k)) return false;
+            adj.put(k, new Vertex(loc));
+            return true;
+        }
+
+        public boolean hasLocation(String name) {
+            return adj.containsKey(normalize(name));
+        }
+
+        public Location getLocation(String name) {
+            Vertex v = adj.get(normalize(name));
+            return v == null ? null : v.location;
+        }
+
+        public boolean removeLocation(String name) {
+            String k = normalize(name);
+            if (!adj.containsKey(k)) return false;
+
+            // remove edges from others
+            for (Vertex v : adj.values()) {
+                v.neighbors.remove(k);
+            }
+            adj.remove(k);
+            return true;
+        }
+
+        public boolean addRoad(String from, String to) {
+            String a = normalize(from);
+            String b = normalize(to);
+            if (a.equals(b)) return false;
+            if (!adj.containsKey(a) || !adj.containsKey(b)) return false;
+
+            adj.get(a).neighbors.add(b);
+            adj.get(b).neighbors.add(a); // undirected
+            return true;
+        }
+
+        public boolean removeRoad(String from, String to) {
+            String a = normalize(from);
+            String b = normalize(to);
+            if (!adj.containsKey(a) || !adj.containsKey(b)) return false;
+
+            boolean removed1 = adj.get(a).neighbors.remove(b);
+            boolean removed2 = adj.get(b).neighbors.remove(a);
+            return removed1 || removed2;
+        }
+
+        public void displayConnections() {
+            if (adj.isEmpty()) {
+                System.out.println("No locations in the graph yet.");
+                return;
+            }
+            System.out.println("\n--- City Connections (Adjacency List) ---");
+            for (Vertex v : adj.values()) {
+                System.out.print(v.location.getName() + " -> ");
+                if (v.neighbors.isEmpty()) {
+                    System.out.println("[no roads]");
+                } else {
+                    List<String> neighborNames = new ArrayList<>();
+                    for (String nk : v.neighbors) {
+                        neighborNames.add(adj.get(nk).location.getName());
+                    }
+                    System.out.println(neighborNames);
+                }
+            }
+        }
+
+        public void listLocations() {
+            if (adj.isEmpty()) {
+                System.out.println("No locations added yet.");
+                return;
+            }
+            System.out.println("\nLocations in Graph:");
+            int i = 1;
+            for (Vertex v : adj.values()) {
+                System.out.println(i++ + ") " + v.location.getName());
+            }
+        }
+
+        // BFS traversal using Queue
+        public List<String> bfs(String startName) {
+            String start = normalize(startName);
+            if (!adj.containsKey(start)) return Collections.emptyList();
+
+            List<String> order = new ArrayList<>();
+            Set<String> visited = new HashSet<>();
+            Queue<String> q = new ArrayDeque<>();
+
+            visited.add(start);
+            q.add(start);
+
+            while (!q.isEmpty()) {
+                String cur = q.poll();
+                order.add(adj.get(cur).location.getName());
+
+                for (String nb : adj.get(cur).neighbors) {
+                    if (!visited.contains(nb)) {
+                        visited.add(nb);
+                        q.add(nb);
+                    }
+                }
+            }
+            return order;
+        }
+
+        // DFS traversal using Stack
+        public List<String> dfs(String startName) {
+            String start = normalize(startName);
+            if (!adj.containsKey(start)) return Collections.emptyList();
+
+            List<String> order = new ArrayList<>();
+            Set<String> visited = new HashSet<>();
+            Deque<String> stack = new ArrayDeque<>();
+
+            stack.push(start);
+
+            while (!stack.isEmpty()) {
+                String cur = stack.pop();
+                if (visited.contains(cur)) continue;
+
+                visited.add(cur);
+                order.add(adj.get(cur).location.getName());
+
+                // push neighbors in reverse alphabetical to get stable-looking order
+                List<String> nbs = new ArrayList<>(adj.get(cur).neighbors);
+                Collections.reverse(nbs);
+                for (String nb : nbs) {
+                    if (!visited.contains(nb)) stack.push(nb);
+                }
+            }
+            return order;
+        }
+
+        public boolean isEmpty() { return adj.isEmpty(); }
+    }
+
+    // ---------- Utilities ----------
+    static String normalize(String s) {
+        return s == null ? "" : s.trim().toLowerCase();
+    }
+
+    static String readNonEmptyLine(Scanner sc, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String line = sc.nextLine().trim();
+            if (!line.isEmpty()) return line;
+            System.out.println("Input cannot be empty. Try again.");
+        }
+    }
+
+    static int readInt(Scanner sc, String prompt, int min, int max) {
+        while (true) {
+            System.out.print(prompt);
+            String line = sc.nextLine().trim();
+            try {
+                int val = Integer.parseInt(line);
+                if (val < min || val > max) {
+                    System.out.println("Enter a number between " + min + " and " + max + ".");
+                } else return val;
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number. Try again.");
+            }
+        }
+    }
