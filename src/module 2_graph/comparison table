@@ -1,0 +1,15 @@
+public class ComTable {
+    //method to show the comparison table
+    public static void show(long bubble, long merge, long quick) {
+
+        System.out.println("\n------------- SORTING PERFORMANCE COMPARISON -------------");
+        System.out.printf("%-15s %-20s%n", "Algorithm", "Execution Time (ns)");
+        System.out.println("-----------------------------------------");
+        System.out.printf("%-15s %-20d%n", "Bubble Sort", bubble);
+        System.out.printf("%-15s %-20d%n", "Merge Sort", merge);
+        System.out.printf("%-15s %-20d%n", "Quick Sort", quick);
+        System.out.println("-------------------------------------------");
+    }
+}
+
+

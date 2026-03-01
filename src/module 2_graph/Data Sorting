@@ -1,0 +1,176 @@
+import java.util.*;
+
+public class DataSorting {
+
+    static Scanner sc = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        showMenu();
+    }
+
+    //menu
+    static void showMenu() {
+        int choice;
+
+        do {
+            System.out.println("\n----------- DATA SORTER -----------");
+            System.out.println("1. enter numbers manually");
+            System.out.println("2. generate random numbers");
+            System.out.println("3. exit");
+            System.out.print("enter choice: ");
+            choice = sc.nextInt();
+
+            switch (choice) {
+                case 1:
+                    manualInput();
+                    break;
+                case 2:
+                    randomInput();
+                    break;
+                case 3:
+                    System.out.println("program terminated");
+                    break;
+                default:
+                    System.out.println("invalid choice, please try again");
+            }
+        } while (choice != 3);
+    }
+
+    //manual input
+    static void manualInput() {
+        System.out.print("enter number of elements: ");
+        int n = sc.nextInt();
+
+        int[] arr = new int[n];
+        System.out.println("enter elements:");
+        for (int i = 0; i < n; i++) {
+            arr[i] = sc.nextInt();
+        }
+
+        processSorting(arr);
+    }
+
+    //random input
+    static void randomInput() {
+        System.out.print("enter number of elements: ");
+        int n = sc.nextInt();
+
+        int[] arr = new int[n];
+        Random r = new Random();
+
+        for (int i = 0; i < n; i++) {
+            arr[i] = r.nextInt(1000);
+        }
+
+        System.out.println("random dataset generated");
+        processSorting(arr);
+    }
+
+    //sorting and timing part
+    static void processSorting(int[] original) {
+
+        int[] bubbleArr = original.clone();
+        int[] mergeArr = original.clone();
+        int[] quickArr = original.clone();
+
+        long start, end;
+
+        //bubble Sort
+        start = System.nanoTime();
+        bubbleSort(bubbleArr);
+        end = System.nanoTime();
+        long bubbleTime = end - start;
+
+        //merge Sort
+        start = System.nanoTime();
+        mergeSort(mergeArr, 0, mergeArr.length - 1);
+        end = System.nanoTime();
+        long mergeTime = end - start;
+
+        //quick Sort
+        start = System.nanoTime();
+        quickSort(quickArr, 0, quickArr.length - 1);
+        end = System.nanoTime();
+        long quickTime = end - start;
+
+        System.out.println("\nSorted Output:");
+        System.out.println(Arrays.toString(bubbleArr));
+
+        ComTable.show(bubbleTime, mergeTime, quickTime);
+    }
+
+    //bubble sort implementatiom
+    static void bubbleSort(int[] arr) {
+        for (int i = 0; i < arr.length - 1; i++) {
+            for (int j = 0; j < arr.length - i - 1; j++) {
+                if (arr[j] > arr[j + 1]) {
+                    int temp = arr[j];
+                    arr[j] = arr[j + 1];
+                    arr[j + 1] = temp;
+                }
+            }
+        }
+    }
+
+    //merge sort implementation
+    static void mergeSort(int[] arr, int left, int right) {
+        if (left < right) {
+            int mid = (left + right) / 2;
+            mergeSort(arr, left, mid);
+            mergeSort(arr, mid + 1, right);
+            merge(arr, left, mid, right);
+        }
+    }
+
+    static void merge(int[] arr, int left, int mid, int right) {
+        int n1 = mid - left + 1;
+        int n2 = right - mid;
+
+        int[] L = new int[n1];
+        int[] R = new int[n2];
+
+        for (int i = 0; i < n1; i++)
+            L[i] = arr[left + i];
+        for (int j = 0; j < n2; j++)
+            R[j] = arr[mid + 1 + j];
+
+        int i = 0, j = 0, k = left;
+
+        while (i < n1 && j < n2) {
+            if (L[i] <= R[j]) arr[k++] = L[i++];
+            else arr[k++] = R[j++];
+        }
+
+        while (i < n1) arr[k++] = L[i++];
+        while (j < n2) arr[k++] = R[j++];
+    }
+
+    //quick sort implementation
+    static void quickSort(int[] arr, int low, int high) {
+        if (low < high) {
+            int p = partition(arr, low, high);
+            quickSort(arr, low, p - 1);
+            quickSort(arr, p + 1, high);
+        }
+    }
+
+    static int partition(int[] arr, int low, int high) {
+        int pivot = arr[high];
+        int i = low - 1;
+
+        for (int j = low; j < high; j++) {
+            if (arr[j] < pivot) {
+                i++;
+                int temp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = temp;
+            }
+        }
+
+        int temp = arr[i + 1];
+        arr[i + 1] = arr[high];
+        arr[high] = temp;
+
+        return i + 1;
+    }
+}
